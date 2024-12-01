@@ -2,11 +2,7 @@
 
 import sys
 from collections import Counter, defaultdict
-from copy import deepcopy
-from heapq import heappop, heappush
 from typing import List, Set, Tuple
-
-import numpy as np
 
 sys.setrecursionlimit(100000)
 FILE = sys.argv[1] if len(sys.argv) > 1 else "input.txt"
@@ -24,14 +20,35 @@ def read_lines_to_list() -> List[str]:
 
 def part_one():
     lines = read_lines_to_list()
-    answer = 0
+
+    left = []
+    right = []
+    for l in lines:
+        [a, b] = l.split("   ")
+        left.append(int(a))
+        right.append(int(b))
+    left.sort()
+    right.sort()
+
+    answer = sum(abs(l - r) for (l, r) in zip(left, right))
 
     print(f"Part 1: {answer}")
 
 
 def part_two():
     lines = read_lines_to_list()
+
+    left = []
+    right = []
+    for l in lines:
+        [a, b] = l.split("   ")
+        left.append(int(a))
+        right.append(int(b))
+
     answer = 0
+    right = Counter(right)
+    for a in left:
+        answer += a * right[a]
 
     print(f"Part 2: {answer}")
 

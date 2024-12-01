@@ -1,1 +1,3 @@
-# Day X
+# Day 1
+
+Time for another 25 days of problem solving at weird hours...
