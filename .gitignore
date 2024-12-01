@@ -1,0 +1,7 @@
+**/input.txt
+**.out.txt
+**/*.so
+**/*.c
+**/build/
+**/.venv
+**/venv
