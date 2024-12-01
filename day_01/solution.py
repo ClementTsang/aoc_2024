@@ -1,10 +1,9 @@
 #!/bin/python3
 
 import sys
-from collections import Counter, defaultdict
-from typing import List, Set, Tuple
+from collections import Counter
+from typing import List
 
-sys.setrecursionlimit(100000)
 FILE = sys.argv[1] if len(sys.argv) > 1 else "input.txt"
 
 
@@ -24,7 +23,7 @@ def part_one():
     left = []
     right = []
     for l in lines:
-        [a, b] = l.split("   ")
+        [a, b] = l.split()
         left.append(int(a))
         right.append(int(b))
     left.sort()
