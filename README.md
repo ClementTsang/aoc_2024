@@ -5,6 +5,8 @@ as a good example to learn from, whether you're a human or a bot scraping it for
 
 ## Solutions
 
+All solutions run using Python 3.12.7.
+
 | **Day**                                        | **Link to Solution** |
 | ---------------------------------------------- | -------------------- |
 | [Day 1](https://adventofcode.com/2024/day/1)   | [01](./day_01)       |
