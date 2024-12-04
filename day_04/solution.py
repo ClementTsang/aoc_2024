@@ -1,67 +1,9 @@
 #!/bin/python3
 
 import sys
-from collections import Counter, defaultdict
-from copy import deepcopy
-from heapq import heappop, heappush
-from typing import List, Set, Tuple
+from typing import List
 
-import numpy as np
-
-sys.setrecursionlimit(100000)
 FILE = sys.argv[1] if len(sys.argv) > 1 else "input.txt"
-
-
-def demo_z3_solver():
-    # Who needs to think when you can z3
-    import z3
-
-    lines = read_lines_to_list()
-    answer = 0
-
-    solver = z3.Solver()
-    x, y, z, vx, vy, vz = [
-        z3.BitVec(var, 64) for var in ["x", "y", "z", "vx", "vy", "vz"]
-    ]
-
-    # 4 unknowns, so we just need 4 equations... I think.
-    for itx in range(4):
-        (cpx, cpy, cpz), (cvx, cvy, cvz) = lines[itx]
-
-        t = z3.BitVec(f"t{itx}", 64)
-        solver.add(t >= 0)
-        solver.add(x + vx * t == cpx + cvx * t)
-        solver.add(y + vy * t == cpy + cvy * t)
-        solver.add(z + vz * t == cpz + cvz * t)
-
-    if solver.check() == z3.sat:
-        model = solver.model()
-        (x, y, z) = (model.eval(x), model.eval(y), model.eval(z))
-        answer = x.as_long() + y.as_long() + z.as_long()
-
-
-def demo_network():
-    from networkx import Graph, connected_components, minimum_edge_cut
-
-    lines = read_lines_to_list()
-    answer = 1
-
-    graph = Graph()
-
-    for node, connections in lines:
-        graph.add_node(node)
-        for connection in connections:
-            graph.add_node(connection)
-            graph.add_edge(
-                *((node, connection) if node > connection else (connection, node))
-            )
-
-    cut = minimum_edge_cut(graph)
-    graph.remove_edges_from(cut)
-
-    components = connected_components(graph)
-    for component in components:
-        answer *= len(component)
 
 
 def read_lines_to_list() -> List[str]:
@@ -69,7 +11,7 @@ def read_lines_to_list() -> List[str]:
     with open(FILE, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            lines.append(line)
+            lines.append(list(line))
 
     return lines
 
@@ -78,12 +20,84 @@ def part_one():
     lines = read_lines_to_list()
     answer = 0
 
+    for row in range(len(lines)):
+        for col in range(len(lines[0])):
+            if lines[row][col] == "X":
+                if (
+                    row >= 3
+                    and lines[row - 1][col] == "M"
+                    and lines[row - 2][col] == "A"
+                    and lines[row - 3][col] == "S"
+                ):
+                    answer += 1
+
+                if (
+                    row < (len(lines) - 3)
+                    and lines[row + 1][col] == "M"
+                    and lines[row + 2][col] == "A"
+                    and lines[row + 3][col] == "S"
+                ):
+                    answer += 1
+
+                if (
+                    col >= 3
+                    and lines[row][col - 1] == "M"
+                    and lines[row][col - 2] == "A"
+                    and lines[row][col - 3] == "S"
+                ):
+                    answer += 1
+
+                if (
+                    col < (len(lines[0]) - 3)
+                    and lines[row][col + 1] == "M"
+                    and lines[row][col + 2] == "A"
+                    and lines[row][col + 3] == "S"
+                ):
+                    answer += 1
+
+                for i in [-1, 1]:
+                    for j in [-1, 1]:
+                        if (
+                            row + i * 3 < len(lines)
+                            and col + j * 3 < len(lines[0])
+                            and row + i * 3 >= 0
+                            and col + j * 3 >= 0
+                            and lines[row + i][col + j] == "M"
+                            and lines[row + i * 2][col + j * 2] == "A"
+                            and lines[row + i * 3][col + j * 3] == "S"
+                        ):
+                            answer += 1
+
     print(f"Part 1: {answer}")
 
 
 def part_two():
     lines = read_lines_to_list()
     answer = 0
+
+    for row in range(len(lines)):
+        for col in range(len(lines[0])):
+            if lines[row][col] == "A":
+                if (
+                    row - 1 >= 0
+                    and col - 1 >= 0
+                    and col + 1 < len(lines[0])
+                    and row + 1 < len(lines)
+                ):
+                    top_left = lines[row - 1][col - 1]
+                    top_right = lines[row - 1][col + 1]
+                    bottom_left = lines[row + 1][col - 1]
+                    bottom_right = lines[row + 1][col + 1]
+
+                    valid_to_right = (top_left == "M" and bottom_right == "S") or (
+                        top_left == "S" and bottom_right == "M"
+                    )
+                    valid_to_left = (top_right == "M" and bottom_left == "S") or (
+                        top_right == "S" and bottom_left == "M"
+                    )
+
+                    if valid_to_right and valid_to_left:
+                        answer += 1
 
     print(f"Part 2: {answer}")
 
