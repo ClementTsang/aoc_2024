@@ -1,67 +1,10 @@
 #!/bin/python3
 
 import sys
-from collections import Counter, defaultdict
-from copy import deepcopy
-from heapq import heappop, heappush
-from typing import List, Set, Tuple
+from collections import defaultdict
+from typing import List
 
-import numpy as np
-
-sys.setrecursionlimit(100000)
 FILE = sys.argv[1] if len(sys.argv) > 1 else "input.txt"
-
-
-def demo_z3_solver():
-    # Who needs to think when you can z3
-    import z3
-
-    lines = read_lines_to_list()
-    answer = 0
-
-    solver = z3.Solver()
-    x, y, z, vx, vy, vz = [
-        z3.BitVec(var, 64) for var in ["x", "y", "z", "vx", "vy", "vz"]
-    ]
-
-    # 4 unknowns, so we just need 4 equations... I think.
-    for itx in range(4):
-        (cpx, cpy, cpz), (cvx, cvy, cvz) = lines[itx]
-
-        t = z3.BitVec(f"t{itx}", 64)
-        solver.add(t >= 0)
-        solver.add(x + vx * t == cpx + cvx * t)
-        solver.add(y + vy * t == cpy + cvy * t)
-        solver.add(z + vz * t == cpz + cvz * t)
-
-    if solver.check() == z3.sat:
-        model = solver.model()
-        (x, y, z) = (model.eval(x), model.eval(y), model.eval(z))
-        answer = x.as_long() + y.as_long() + z.as_long()
-
-
-def demo_network():
-    from networkx import Graph, connected_components, minimum_edge_cut
-
-    lines = read_lines_to_list()
-    answer = 1
-
-    graph = Graph()
-
-    for node, connections in lines:
-        graph.add_node(node)
-        for connection in connections:
-            graph.add_node(connection)
-            graph.add_edge(
-                *((node, connection) if node > connection else (connection, node))
-            )
-
-    cut = minimum_edge_cut(graph)
-    graph.remove_edges_from(cut)
-
-    components = connected_components(graph)
-    for component in components:
-        answer *= len(component)
 
 
 def read_lines_to_list() -> List[str]:
@@ -74,9 +17,55 @@ def read_lines_to_list() -> List[str]:
     return lines
 
 
+def read(lines: List[str]):
+    first_section = True
+    after_rules = defaultdict(list)
+    before_rules = defaultdict(list)
+    updates = []
+    for line in lines:
+        if len(line) == 0:
+            first_section = False
+            continue
+
+        if first_section:
+            [left, right] = line.split("|")
+            left = int(left)
+            right = int(right)
+
+            after_rules[left].append(right)
+            before_rules[right].append(left)
+        else:
+            update = [int(i) for i in line.split(",")]
+            updates.append(update)
+
+    return (updates, after_rules, before_rules)
+
+
+def valid_update(after_rules, before_rules, update) -> bool:
+
+    for i in range(len(update)):
+        before = update[:i]
+        after = update[i + 1 :]
+
+        if any(before_rules[b] and update[i] in before_rules[b] for b in before):
+            return False
+
+        if any(
+            after_rules[update[i]] and a not in after_rules[update[i]] for a in after
+        ):
+            return False
+
+    return True
+
+
 def part_one():
     lines = read_lines_to_list()
     answer = 0
+    updates, after_rules, before_rules = read(lines)
+
+    for update in updates:
+        if valid_update(after_rules, before_rules, update):
+            answer += update[len(update) // 2]
 
     print(f"Part 1: {answer}")
 
@@ -84,6 +73,21 @@ def part_one():
 def part_two():
     lines = read_lines_to_list()
     answer = 0
+    updates, after_rules, before_rules = read(lines)
+
+    for update in updates:
+        if not valid_update(after_rules, before_rules, update):
+            # Lazy way of doing it: just brute force shuffle values until it's sorted.
+            # Not the most clean but it _does_ seem to work...
+            new_update = []
+            while update:
+                curr = update.pop(0)
+                if all(u in after_rules[curr] for u in update):
+                    new_update.append(curr)
+                else:
+                    update.append(curr)
+
+            answer += new_update[len(new_update) // 2]
 
     print(f"Part 2: {answer}")
 
