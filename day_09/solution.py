@@ -69,6 +69,7 @@ def read_lines_to_list() -> List[str]:
     with open(FILE, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
+            # lines.append(list(line))
             lines.append(line)
 
     return lines
