@@ -1,5 +1,6 @@
 #!/bin/python3
 
+import os
 import sys
 
 import requests
@@ -8,12 +9,13 @@ import requests
 
 day = sys.argv[1]
 
-with open(".session") as f, open(f"day_{day.zfill(2)}/input.txt", "r+") as i:
-    if len(i.read()) > 0:
+with open(f"day_{day.zfill(2)}/input.txt", "r+") as i:
+    curr = i.read()
+    if len(curr) > 0:
         print("Not writing as input file is populated. Stopping.")
         exit(0)
 
-    session = f.read()
+    session = os.environ["AOC_SESSION"]
 
     headers = {"Cookie": f"session={session}"}
     response = requests.get(
