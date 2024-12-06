@@ -16,9 +16,8 @@ def read_lines_to_maze() -> List[str]:
     return lines
 
 
-def part_one():
+def original_path():
     lines = read_lines_to_maze()
-    answer = 0
 
     maze = {}
     visited = set()
@@ -77,11 +76,19 @@ def part_one():
                 maze[curr] = "^"
                 visited.add(curr)
 
+    return visited
+
+
+def part_one():
+    visited = original_path()
     answer = len(visited)
+
     print(f"Part 1: {answer}")
 
 
 def part_two():
+    to_check = original_path()
+
     lines = read_lines_to_maze()
     answer = 0
 
@@ -97,7 +104,7 @@ def part_two():
             if cell == "^":
                 start = (row, col)
 
-    for m in maze.keys():
+    for m in to_check:
         if maze[m] != ".":
             continue
 
