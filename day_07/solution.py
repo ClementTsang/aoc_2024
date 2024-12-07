@@ -6,6 +6,8 @@ from copy import deepcopy
 from heapq import heappop, heappush
 from typing import List, Set, Tuple
 
+import multiprocess as mp
+
 sys.setrecursionlimit(100000)
 FILE = sys.argv[1] if len(sys.argv) > 1 else "input.txt"
 
