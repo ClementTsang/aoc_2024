@@ -5,4 +5,5 @@
 **/build/
 **/.venv
 **/venv
+**/.venv_normal
 .session
