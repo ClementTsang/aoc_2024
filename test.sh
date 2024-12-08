@@ -7,5 +7,5 @@ FILE="${2:-test.txt}"
 
 echo "===== Running TEST for $DAY on file $FILE ====="
 
-source .venv/bin/activate
+source .venv_normal/bin/activate
 .venv/bin/python "$DAY/solution.py" "$DAY/$FILE" $3
