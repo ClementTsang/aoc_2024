@@ -1,68 +1,10 @@
 #!/bin/python3
 
 import sys
-from collections import Counter, defaultdict
-from copy import deepcopy
-from heapq import heappop, heappush
-from typing import List, Set, Tuple
+from typing import List
 
-import multiprocess as mp
-import numpy as np
 
-sys.setrecursionlimit(100000)
 FILE = sys.argv[1] if len(sys.argv) > 1 else "input.txt"
-
-
-def demo_z3_solver():
-    # Who needs to think when you can z3
-    import z3
-
-    lines = read_lines_to_list()
-    answer = 0
-
-    solver = z3.Solver()
-    x, y, z, vx, vy, vz = [
-        z3.BitVec(var, 64) for var in ["x", "y", "z", "vx", "vy", "vz"]
-    ]
-
-    # 4 unknowns, so we just need 4 equations... I think.
-    for itx in range(4):
-        (cpx, cpy, cpz), (cvx, cvy, cvz) = lines[itx]
-
-        t = z3.BitVec(f"t{itx}", 64)
-        solver.add(t >= 0)
-        solver.add(x + vx * t == cpx + cvx * t)
-        solver.add(y + vy * t == cpy + cvy * t)
-        solver.add(z + vz * t == cpz + cvz * t)
-
-    if solver.check() == z3.sat:
-        model = solver.model()
-        (x, y, z) = (model.eval(x), model.eval(y), model.eval(z))
-        answer = x.as_long() + y.as_long() + z.as_long()
-
-
-def demo_network():
-    from networkx import Graph, connected_components, minimum_edge_cut
-
-    lines = read_lines_to_list()
-    answer = 1
-
-    graph = Graph()
-
-    for node, connections in lines:
-        graph.add_node(node)
-        for connection in connections:
-            graph.add_node(connection)
-            graph.add_edge(
-                *((node, connection) if node > connection else (connection, node))
-            )
-
-    cut = minimum_edge_cut(graph)
-    graph.remove_edges_from(cut)
-
-    components = connected_components(graph)
-    for component in components:
-        answer *= len(component)
 
 
 def read_lines_to_list() -> List[str]:
@@ -70,8 +12,7 @@ def read_lines_to_list() -> List[str]:
     with open(FILE, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            # lines.append(list(line))
-            lines.append(line)
+            lines.append([int(c) if c != "." else -100 for c in list(line)])
 
     return lines
 
@@ -80,6 +21,43 @@ def part_one():
     lines = read_lines_to_list()
     answer = 0
 
+    starts = []
+    height = len(lines)
+    width = len(lines[0])
+
+    for row in range(len(lines)):
+        for col in range(len(lines[row])):
+            if lines[row][col] == 0:
+                starts.append((row, col))
+
+    for start in starts:
+        queue = [start]
+        visited = set()
+        while queue:
+            curr = queue.pop(0)
+            val = lines[curr[0]][curr[1]]
+
+            if val == 9:
+                answer += 1
+                continue
+
+            if curr[0] - 1 >= 0 and lines[curr[0] - 1][curr[1]] - val == 1:
+                if (curr[0] - 1, curr[1]) not in visited:
+                    visited.add((curr[0] - 1, curr[1]))
+                    queue.append((curr[0] - 1, curr[1]))
+            if curr[0] + 1 < height and lines[curr[0] + 1][curr[1]] - val == 1:
+                if (curr[0] + 1, curr[1]) not in visited:
+                    visited.add((curr[0] + 1, curr[1]))
+                    queue.append((curr[0] + 1, curr[1]))
+            if curr[1] - 1 >= 0 and lines[curr[0]][curr[1] - 1] - val == 1:
+                if (curr[0], curr[1] - 1) not in visited:
+                    visited.add((curr[0], curr[1] - 1))
+                    queue.append((curr[0], curr[1] - 1))
+            if curr[1] + 1 < width and lines[curr[0]][curr[1] + 1] - val == 1:
+                if (curr[0], curr[1] + 1) not in visited:
+                    visited.add((curr[0], curr[1] + 1))
+                    queue.append((curr[0], curr[1] + 1))
+
     print(f"Part 1: {answer}")
 
 
@@ -87,6 +65,40 @@ def part_two():
     lines = read_lines_to_list()
     answer = 0
 
+    starts = []
+    height = len(lines)
+    width = len(lines[0])
+
+    for row in range(len(lines)):
+        for col in range(len(lines[row])):
+            if lines[row][col] == 0:
+                starts.append((row, col))
+
+    trails = set()
+
+    for start in starts:
+        queue = [(start, [])]
+        while queue:
+            (curr, prev) = queue.pop(0)
+            val = lines[curr[0]][curr[1]]
+
+            prev.append(curr)
+
+            if val == 9:
+
+                trails.add(frozenset((tuple(prev),)))
+                continue
+
+            if curr[0] - 1 >= 0 and lines[curr[0] - 1][curr[1]] - val == 1:
+                queue.append(((curr[0] - 1, curr[1]), prev))
+            if curr[0] + 1 < height and lines[curr[0] + 1][curr[1]] - val == 1:
+                queue.append(((curr[0] + 1, curr[1]), prev))
+            if curr[1] - 1 >= 0 and lines[curr[0]][curr[1] - 1] - val == 1:
+                queue.append(((curr[0], curr[1] - 1), prev))
+            if curr[1] + 1 < width and lines[curr[0]][curr[1] + 1] - val == 1:
+                queue.append(((curr[0], curr[1] + 1), prev))
+
+    answer = len(trails)
     print(f"Part 2: {answer}")
 
 

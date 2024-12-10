@@ -1,68 +1,9 @@
 #!/bin/python3
 
 import sys
-from collections import Counter, defaultdict
-from copy import deepcopy
-from heapq import heappop, heappush
-from typing import List, Set, Tuple
+from typing import List
 
-import multiprocess as mp
-import numpy as np
-
-sys.setrecursionlimit(100000)
 FILE = sys.argv[1] if len(sys.argv) > 1 else "input.txt"
-
-
-def demo_z3_solver():
-    # Who needs to think when you can z3
-    import z3
-
-    lines = read_lines_to_list()
-    answer = 0
-
-    solver = z3.Solver()
-    x, y, z, vx, vy, vz = [
-        z3.BitVec(var, 64) for var in ["x", "y", "z", "vx", "vy", "vz"]
-    ]
-
-    # 4 unknowns, so we just need 4 equations... I think.
-    for itx in range(4):
-        (cpx, cpy, cpz), (cvx, cvy, cvz) = lines[itx]
-
-        t = z3.BitVec(f"t{itx}", 64)
-        solver.add(t >= 0)
-        solver.add(x + vx * t == cpx + cvx * t)
-        solver.add(y + vy * t == cpy + cvy * t)
-        solver.add(z + vz * t == cpz + cvz * t)
-
-    if solver.check() == z3.sat:
-        model = solver.model()
-        (x, y, z) = (model.eval(x), model.eval(y), model.eval(z))
-        answer = x.as_long() + y.as_long() + z.as_long()
-
-
-def demo_network():
-    from networkx import Graph, connected_components, minimum_edge_cut
-
-    lines = read_lines_to_list()
-    answer = 1
-
-    graph = Graph()
-
-    for node, connections in lines:
-        graph.add_node(node)
-        for connection in connections:
-            graph.add_node(connection)
-            graph.add_edge(
-                *((node, connection) if node > connection else (connection, node))
-            )
-
-    cut = minimum_edge_cut(graph)
-    graph.remove_edges_from(cut)
-
-    components = connected_components(graph)
-    for component in components:
-        answer *= len(component)
 
 
 def read_lines_to_list() -> List[str]:
@@ -78,14 +19,79 @@ def read_lines_to_list() -> List[str]:
 
 def part_one():
     lines = read_lines_to_list()
+    vals = [int(val) for val in list(lines[0])]
     answer = 0
 
+    id = 0
+    strip = []
+    is_block = True
+    for i in range(len(vals)):
+        if is_block:
+            strip.extend([id] * vals[i])
+            id += 1
+        else:
+            strip.extend([None] * vals[i])
+
+        is_block = not is_block
+
+    free_space = strip.index(None)
+    for i in reversed(range(0, len(strip))):
+        if strip[i] is not None:
+            strip[free_space] = strip[i]
+            strip[i] = None
+            while strip[free_space] is not None:
+                free_space += 1
+            if i - free_space <= 1:
+                break
+
+    answer = sum(val * itx if val is not None else 0 for (itx, val) in enumerate(strip))
     print(f"Part 1: {answer}")
 
 
 def part_two():
     lines = read_lines_to_list()
+    vals = [int(val) for val in list(lines[0])]
     answer = 0
+
+    id = 0
+    strip = []
+    gaps = []
+    blocks = []
+    is_block = True
+    for i in range(len(vals)):
+        if is_block:
+            blocks.append((len(strip), id, vals[i]))
+            strip.extend([id] * vals[i])
+            id += 1
+        else:
+            gaps.append((vals[i], len(strip)))
+            strip.extend([None] * vals[i])
+
+        is_block = not is_block
+
+    # print("".join([str(v) if v is not None else "." for v in strip]))
+    # print("".join(["o" if v is not None else "." for v in strip]))
+    for block in reversed(blocks):
+        (position, id, length) = block
+        for itx, (gap_length, gap_position) in enumerate(gaps):
+            if gap_position > position:
+                break
+
+            if gap_length >= length:
+                for l in range(length):
+                    strip[position + l] = None
+                    strip[gap_position + l] = id
+
+                diff = gap_length - length
+                if diff > 0:
+                    gaps[itx] = (diff, gap_position + length)
+                else:
+                    gaps.pop(itx)
+                break
+        # print("".join([str(v) if v is not None else "." for v in strip]))
+    # print("".join(["o" if v is not None else "." for v in strip]))
+
+    answer = sum(val * itx if val is not None else 0 for (itx, val) in enumerate(strip))
 
     print(f"Part 2: {answer}")
 
