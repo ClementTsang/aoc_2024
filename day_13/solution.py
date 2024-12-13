@@ -1,68 +1,12 @@
 #!/bin/python3
 
 import sys
-from collections import Counter, defaultdict
-from copy import deepcopy
-from heapq import heappop, heappush
-from typing import List, Set, Tuple
+from typing import List
 
-import multiprocess as mp
 import numpy as np
 
 sys.setrecursionlimit(100000)
 FILE = sys.argv[1] if len(sys.argv) > 1 else "input.txt"
-
-
-def demo_z3_solver():
-    # Who needs to think when you can z3
-    import z3
-
-    lines = read_lines_to_list()
-    answer = 0
-
-    solver = z3.Solver()
-    x, y, z, vx, vy, vz = [
-        z3.BitVec(var, 64) for var in ["x", "y", "z", "vx", "vy", "vz"]
-    ]
-
-    # 4 unknowns, so we just need 4 equations... I think.
-    for itx in range(4):
-        (cpx, cpy, cpz), (cvx, cvy, cvz) = lines[itx]
-
-        t = z3.BitVec(f"t{itx}", 64)
-        solver.add(t >= 0)
-        solver.add(x + vx * t == cpx + cvx * t)
-        solver.add(y + vy * t == cpy + cvy * t)
-        solver.add(z + vz * t == cpz + cvz * t)
-
-    if solver.check() == z3.sat:
-        model = solver.model()
-        (x, y, z) = (model.eval(x), model.eval(y), model.eval(z))
-        answer = x.as_long() + y.as_long() + z.as_long()
-
-
-def demo_network():
-    from networkx import Graph, connected_components, minimum_edge_cut
-
-    lines = read_lines_to_list()
-    answer = 1
-
-    graph = Graph()
-
-    for node, connections in lines:
-        graph.add_node(node)
-        for connection in connections:
-            graph.add_node(connection)
-            graph.add_edge(
-                *((node, connection) if node > connection else (connection, node))
-            )
-
-    cut = minimum_edge_cut(graph)
-    graph.remove_edges_from(cut)
-
-    components = connected_components(graph)
-    for component in components:
-        answer *= len(component)
 
 
 def read_lines_to_list() -> List[str]:
@@ -70,7 +14,6 @@ def read_lines_to_list() -> List[str]:
     with open(FILE, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            # lines.append(list(line))
             lines.append(line)
 
     return lines
@@ -80,12 +23,107 @@ def part_one():
     lines = read_lines_to_list()
     answer = 0
 
+    ams = []
+    bms = []
+    prizes = []
+    for line in lines:
+        if len(line.strip()) == 0:
+            continue
+
+        if line.startswith("Button A"):
+            l = line.split(": ")[-1]
+            l: List[str] = l.split(", ")
+            x = int(l[0].strip("X+"))
+            y = int(l[1].strip("Y+"))
+            ams.append((x, y))
+        elif line.startswith("Button B"):
+            l = line.split(": ")[-1]
+            l: List[str] = l.split(", ")
+            x = int(l[0].strip("X+"))
+            y = int(l[1].strip("Y+"))
+            bms.append((x, y))
+        else:
+            l = line.split(": ")[-1]
+            l: List[str] = l.split(", ")
+            x = int(l[0].strip("X="))
+            y = int(l[1].strip("Y="))
+            prizes.append((x, y))
+
+    for itx, (a, b, prize) in enumerate(zip(ams, bms, prizes)):
+        ax = a[0]
+        ay = a[1]
+        bx = b[0]
+        by = b[1]
+
+        target_x = prize[0]
+        target_y = prize[1]
+
+        one = np.array([[ax, bx], [ay, by]], dtype=np.uint32)
+        two = np.array([target_x, target_y], dtype=np.uint32)
+
+        result = np.linalg.solve(one, two)
+        result = str(result)
+
+        # Because I can't with numpy types
+        if ". " in result and ".]" in result:
+            left = result.split("[")[-1].split(".")[0]
+            right = result.split(". ")[-1].split(".]")[0]
+            tokens = int(left) * 3 + int(right)
+            answer += tokens
+
     print(f"Part 1: {answer}")
 
 
 def part_two():
+    # It's z3 time again
+    import z3
+
     lines = read_lines_to_list()
     answer = 0
+
+    ams = []
+    bms = []
+    prizes = []
+    for line in lines:
+        if len(line.strip()) == 0:
+            continue
+
+        if line.startswith("Button A"):
+            l = line.split(": ")[-1]
+            l: List[str] = l.split(", ")
+            x = int(l[0].strip("X+"))
+            y = int(l[1].strip("Y+"))
+            ams.append((x, y))
+        elif line.startswith("Button B"):
+            l = line.split(": ")[-1]
+            l: List[str] = l.split(", ")
+            x = int(l[0].strip("X+"))
+            y = int(l[1].strip("Y+"))
+            bms.append((x, y))
+        else:
+            l = line.split(": ")[-1]
+            l: List[str] = l.split(", ")
+            x = int(l[0].strip("X="))
+            y = int(l[1].strip("Y="))
+            prizes.append((x + 10000000000000, y + 10000000000000))
+
+    for itx, (a, b, prize) in enumerate(zip(ams, bms, prizes)):
+        ax = a[0]
+        ay = a[1]
+        bx = b[0]
+        by = b[1]
+
+        target_x = prize[0]
+        target_y = prize[1]
+
+        solver = z3.Solver()
+        (a, b) = z3.Ints("a b")
+        solver.add(ax * a + bx * b == target_x)
+        solver.add(ay * a + by * b == target_y)
+
+        if solver.check() == z3.sat:
+            model = solver.model()
+            answer += model.eval(a).as_long() * 3 + model.eval(b).as_long()
 
     print(f"Part 2: {answer}")
 
