@@ -4,7 +4,6 @@ import sys
 from typing import List
 
 
-sys.setrecursionlimit(100000)
 FILE = sys.argv[1] if len(sys.argv) > 1 else "input.txt"
 HEIGHT = 7 if "input.txt" not in FILE else 103
 WIDTH = 11 if "input.txt" not in FILE else 101
@@ -101,18 +100,11 @@ def part_two():
         move_bot(WIDTH, HEIGHT, positions, velocities)
 
         positions_tuple = [(x, y) for [x, y] in positions]
+        # A guess that we can clear it if we find any position where everything is used.
         if len(set(positions_tuple)) == len(positions_tuple):
             break
-        state = frozenset((tuple(positions_tuple),))
 
-        # print(f"==== {answer} ====")
-        # for i in range(HEIGHT):
-        #     for j in range(WIDTH):
-        #         if [j, i] in positions:
-        #             print("█", end="")
-        #         else:
-        #             print(" ", end="")
-        #     print("")
+        state = frozenset((tuple(positions_tuple),))
 
         if state in states:
             break
