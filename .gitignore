@@ -7,3 +7,4 @@
 **/venv
 **/.venv_normal
 .session
+**/target/
