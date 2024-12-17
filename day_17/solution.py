@@ -1,68 +1,10 @@
 #!/bin/python3
 
 import sys
-from collections import Counter, defaultdict
-from copy import deepcopy
-from heapq import heappop, heappush
-from typing import List, Set, Tuple
+from typing import List
 
-import multiprocess as mp
-import numpy as np
 
-sys.setrecursionlimit(100000)
 FILE = sys.argv[1] if len(sys.argv) > 1 else "input.txt"
-
-
-def demo_z3_solver():
-    # Who needs to think when you can z3
-    import z3
-
-    lines = read_lines_to_list()
-    answer = 0
-
-    solver = z3.Solver()
-    x, y, z, vx, vy, vz = [
-        z3.BitVec(var, 64) for var in ["x", "y", "z", "vx", "vy", "vz"]
-    ]
-
-    # 4 unknowns, so we just need 4 equations... I think.
-    for itx in range(4):
-        (cpx, cpy, cpz), (cvx, cvy, cvz) = lines[itx]
-
-        t = z3.BitVec(f"t{itx}", 64)
-        solver.add(t >= 0)
-        solver.add(x + vx * t == cpx + cvx * t)
-        solver.add(y + vy * t == cpy + cvy * t)
-        solver.add(z + vz * t == cpz + cvz * t)
-
-    if solver.check() == z3.sat:
-        model = solver.model()
-        (x, y, z) = (model.eval(x), model.eval(y), model.eval(z))
-        answer = x.as_long() + y.as_long() + z.as_long()
-
-
-def demo_network():
-    from networkx import Graph, connected_components, minimum_edge_cut
-
-    lines = read_lines_to_list()
-    answer = 1
-
-    graph = Graph()
-
-    for node, connections in lines:
-        graph.add_node(node)
-        for connection in connections:
-            graph.add_node(connection)
-            graph.add_edge(
-                *((node, connection) if node > connection else (connection, node))
-            )
-
-    cut = minimum_edge_cut(graph)
-    graph.remove_edges_from(cut)
-
-    components = connected_components(graph)
-    for component in components:
-        answer *= len(component)
 
 
 def read_lines_to_list() -> List[str]:
@@ -70,22 +12,101 @@ def read_lines_to_list() -> List[str]:
     with open(FILE, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            # lines.append(list(line))
             lines.append(line)
 
     return lines
 
 
+def combo(register_a, register_b, register_c, operand) -> int:
+    if operand in [0, 1, 2, 3]:
+        combo = operand
+    elif operand == 4:
+        combo = register_a
+    elif operand == 5:
+        combo = register_b
+    elif operand == 6:
+        combo = register_c
+    elif operand == 7:
+        raise Exception("this is a reserved combo operand")
+    else:
+        raise Exception("you messed up")
+
+    return combo
+
+
 def part_one():
     lines = read_lines_to_list()
-    answer = 0
+    answer = ""
 
+    register_a = int(lines[0].split(": ")[-1])
+    register_b = int(lines[1].split(": ")[-1])
+    register_c = int(lines[2].split(": ")[-1])
+    program = [int(v) for v in lines[4].split(": ")[-1].split(",")]
+
+    pc = 0
+    out = []
+    while pc < len(program):
+        opcode = program[pc]
+        operand = program[pc + 1]
+        combo_operand = combo(register_a, register_b, register_c, operand)
+
+        if opcode == 0:
+            # adv
+            register_a = register_a // pow(2, combo_operand)
+        elif opcode == 1:
+            # bxl
+            register_b = register_b ^ operand
+        elif opcode == 2:
+            # bst
+            register_b = combo_operand % 8
+        elif opcode == 3:
+            # jnz
+            if register_a != 0:
+                pc = operand
+                continue
+        elif opcode == 4:
+            # bxc
+            register_b = register_b ^ register_c
+        elif opcode == 5:
+            # out
+            out.append(f"{combo_operand % 8}")
+        elif opcode == 6:
+            # bdv
+            register_b = register_a // pow(2, combo_operand)
+        elif opcode == 7:
+            # cdv
+            register_c = register_a // pow(2, combo_operand)
+        else:
+            raise Exception("non-existent opcode!")
+
+        pc += 2
+
+    answer = ",".join(out)
     print(f"Part 1: {answer}")
 
 
 def part_two():
     lines = read_lines_to_list()
     answer = 0
+
+    program = [int(v) for v in lines[4].split(": ")[-1].split(",")]
+
+    def test(a):
+        return (((a % 8) ^ 1) ^ 5) ^ (a // pow(2, ((a % 8) ^ 1))) % 8
+
+    answers = [0]
+    for p in reversed(program):
+        new_answers = []
+        for curr in answers:
+            for a in range(8):
+                to_test = (curr << 3) + a
+                out = test(to_test)
+                if out == p:
+                    new_answers.append(to_test)
+
+        answers = new_answers
+
+    answer = min(answers)
 
     print(f"Part 2: {answer}")
 
