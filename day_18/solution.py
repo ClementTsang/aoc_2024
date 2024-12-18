@@ -87,16 +87,7 @@ def part_two():
         xy = [int(i) for i in line.split(",")]
         coordinates.append((xy[1], xy[0]))
 
-    graph = nwx.Graph()
-    for i in range(GOAL[0] + 1):
-        for j in range(GOAL[1] + 1):
-            graph.add_node((i, j))
-
-    for node in graph.nodes:
-        for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-            destination = node[0] + dy, node[1] + dx
-            if destination in graph.nodes:
-                graph.add_edge(node, destination)
+    graph = nwx.grid_2d_graph(GOAL[0] + 1, GOAL[1] + 1)
 
     for steps in range(len(coordinates)):
         to_remove = coordinates[steps]
