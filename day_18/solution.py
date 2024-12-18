@@ -10,7 +10,7 @@ FILE = sys.argv[1] if len(sys.argv) > 1 else "input.txt"
 GOAL = (70, 70) if "input.txt" in FILE else (6, 6)
 STEPS = 1024 if "input.txt" in FILE else 12
 
-print(f"goal is {GOAL}, steps is {STEPS}")
+# print(f"goal is {GOAL}, steps is {STEPS}")
 
 
 def demo_network():
@@ -87,22 +87,23 @@ def part_two():
         xy = [int(i) for i in line.split(",")]
         coordinates.append((xy[1], xy[0]))
 
-    for steps in range(len(coordinates)):
-        graph = nwx.Graph()
-        corrupted = set(coordinates[0:steps])
-        for i in range(GOAL[0] + 1):
-            for j in range(GOAL[1] + 1):
-                if (i, j) not in corrupted:
-                    graph.add_node((i, j))
+    graph = nwx.Graph()
+    for i in range(GOAL[0] + 1):
+        for j in range(GOAL[1] + 1):
+            graph.add_node((i, j))
 
-        for node in graph.nodes:
-            for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-                destination = node[0] + dy, node[1] + dx
-                if destination in graph.nodes:
-                    graph.add_edge(node, destination)
+    for node in graph.nodes:
+        for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            destination = node[0] + dy, node[1] + dx
+            if destination in graph.nodes:
+                graph.add_edge(node, destination)
+
+    for steps in range(len(coordinates)):
+        to_remove = coordinates[steps]
+        graph.remove_node(to_remove)
 
         if not nwx.has_path(graph, (0, 0), GOAL):
-            answer = coordinates[steps - 1]
+            answer = coordinates[steps]
             answer = f"{answer[1]},{answer[0]}"
             break
 
