@@ -1,44 +1,16 @@
 #!/bin/python3
 
 import sys
-from collections import Counter, defaultdict
-from copy import deepcopy
-from heapq import heappop, heappush
-from typing import List, Set, Tuple
+from typing import List
 
-import multiprocess as mp
-import numpy as np
+import networkx as nwx
 
 sys.setrecursionlimit(100000)
 FILE = sys.argv[1] if len(sys.argv) > 1 else "input.txt"
+GOAL = (70, 70) if "input.txt" in FILE else (6, 6)
+STEPS = 1024 if "input.txt" in FILE else 12
 
-
-def demo_z3_solver():
-    # Who needs to think when you can z3
-    import z3
-
-    lines = read_lines_to_list()
-    answer = 0
-
-    solver = z3.Solver()
-    x, y, z, vx, vy, vz = [
-        z3.BitVec(var, 64) for var in ["x", "y", "z", "vx", "vy", "vz"]
-    ]
-
-    # 4 unknowns, so we just need 4 equations... I think.
-    for itx in range(4):
-        (cpx, cpy, cpz), (cvx, cvy, cvz) = lines[itx]
-
-        t = z3.BitVec(f"t{itx}", 64)
-        solver.add(t >= 0)
-        solver.add(x + vx * t == cpx + cvx * t)
-        solver.add(y + vy * t == cpy + cvy * t)
-        solver.add(z + vz * t == cpz + cvz * t)
-
-    if solver.check() == z3.sat:
-        model = solver.model()
-        (x, y, z) = (model.eval(x), model.eval(y), model.eval(z))
-        answer = x.as_long() + y.as_long() + z.as_long()
+print(f"goal is {GOAL}, steps is {STEPS}")
 
 
 def demo_network():
@@ -70,7 +42,6 @@ def read_lines_to_list() -> List[str]:
     with open(FILE, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            # lines.append(list(line))
             lines.append(line)
 
     return lines
@@ -80,12 +51,60 @@ def part_one():
     lines = read_lines_to_list()
     answer = 0
 
+    # in y, x
+    coordinates = []
+
+    for line in lines:
+        xy = [int(i) for i in line.split(",")]
+        coordinates.append((xy[1], xy[0]))
+
+    graph = nwx.Graph()
+    corrupted = set(coordinates[0:STEPS])
+    for i in range(GOAL[0] + 1):
+        for j in range(GOAL[1] + 1):
+            if (i, j) not in corrupted:
+                graph.add_node((i, j))
+
+    for node in graph.nodes:
+        for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            destination = node[0] + dy, node[1] + dx
+            if destination in graph.nodes:
+                graph.add_edge(node, destination)
+
+    answer = nwx.shortest_path_length(graph, (0, 0), GOAL)
+
     print(f"Part 1: {answer}")
 
 
 def part_two():
     lines = read_lines_to_list()
     answer = 0
+
+    # in y, x
+    coordinates = []
+
+    for line in lines:
+        xy = [int(i) for i in line.split(",")]
+        coordinates.append((xy[1], xy[0]))
+
+    for steps in range(len(coordinates)):
+        graph = nwx.Graph()
+        corrupted = set(coordinates[0:steps])
+        for i in range(GOAL[0] + 1):
+            for j in range(GOAL[1] + 1):
+                if (i, j) not in corrupted:
+                    graph.add_node((i, j))
+
+        for node in graph.nodes:
+            for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                destination = node[0] + dy, node[1] + dx
+                if destination in graph.nodes:
+                    graph.add_edge(node, destination)
+
+        if not nwx.has_path(graph, (0, 0), GOAL):
+            answer = coordinates[steps - 1]
+            answer = f"{answer[1]},{answer[0]}"
+            break
 
     print(f"Part 2: {answer}")
 
