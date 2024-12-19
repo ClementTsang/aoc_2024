@@ -13,30 +13,6 @@ STEPS = 1024 if "input.txt" in FILE else 12
 # print(f"goal is {GOAL}, steps is {STEPS}")
 
 
-def demo_network():
-    from networkx import Graph, connected_components, minimum_edge_cut
-
-    lines = read_lines_to_list()
-    answer = 1
-
-    graph = Graph()
-
-    for node, connections in lines:
-        graph.add_node(node)
-        for connection in connections:
-            graph.add_node(connection)
-            graph.add_edge(
-                *((node, connection) if node > connection else (connection, node))
-            )
-
-    cut = minimum_edge_cut(graph)
-    graph.remove_edges_from(cut)
-
-    components = connected_components(graph)
-    for component in components:
-        answer *= len(component)
-
-
 def read_lines_to_list() -> List[str]:
     lines: List[str] = []
     with open(FILE, "r", encoding="utf-8") as f:
@@ -89,6 +65,11 @@ def part_two():
 
     graph = nwx.grid_2d_graph(GOAL[0] + 1, GOAL[1] + 1)
 
+    # Possible optimizations:
+    # - Binary search/use Python's bisect to narrow search space
+    # - Only try checking path if the next coordinate lands on the current path
+    #
+    # But it runs in like 3 seconds so... eh.
     for steps in range(len(coordinates)):
         to_remove = coordinates[steps]
         graph.remove_node(to_remove)
