@@ -1,68 +1,14 @@
 #!/bin/python3
 
+import itertools
 import sys
-from collections import Counter, defaultdict
-from copy import deepcopy
-from heapq import heappop, heappush
-from typing import List, Set, Tuple
+from collections import Counter
+from functools import cache
+from typing import List, Tuple
 
-import multiprocess as mp
-import numpy as np
+import networkx as nx
 
-sys.setrecursionlimit(100000)
 FILE = sys.argv[1] if len(sys.argv) > 1 else "input.txt"
-
-
-def demo_z3_solver():
-    # Who needs to think when you can z3
-    import z3
-
-    lines = read_lines_to_list()
-    answer = 0
-
-    solver = z3.Solver()
-    x, y, z, vx, vy, vz = [
-        z3.BitVec(var, 64) for var in ["x", "y", "z", "vx", "vy", "vz"]
-    ]
-
-    # 4 unknowns, so we just need 4 equations... I think.
-    for itx in range(4):
-        (cpx, cpy, cpz), (cvx, cvy, cvz) = lines[itx]
-
-        t = z3.BitVec(f"t{itx}", 64)
-        solver.add(t >= 0)
-        solver.add(x + vx * t == cpx + cvx * t)
-        solver.add(y + vy * t == cpy + cvy * t)
-        solver.add(z + vz * t == cpz + cvz * t)
-
-    if solver.check() == z3.sat:
-        model = solver.model()
-        (x, y, z) = (model.eval(x), model.eval(y), model.eval(z))
-        answer = x.as_long() + y.as_long() + z.as_long()
-
-
-def demo_network():
-    from networkx import Graph, connected_components, minimum_edge_cut
-
-    lines = read_lines_to_list()
-    answer = 1
-
-    graph = Graph()
-
-    for node, connections in lines:
-        graph.add_node(node)
-        for connection in connections:
-            graph.add_node(connection)
-            graph.add_edge(
-                *((node, connection) if node > connection else (connection, node))
-            )
-
-    cut = minimum_edge_cut(graph)
-    graph.remove_edges_from(cut)
-
-    components = connected_components(graph)
-    for component in components:
-        answer *= len(component)
 
 
 def read_lines_to_list() -> List[str]:
@@ -70,15 +16,209 @@ def read_lines_to_list() -> List[str]:
     with open(FILE, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            # lines.append(list(line))
-            lines.append(line)
+            lines.append(list(line))
 
     return lines
+
+
+def create_numeric() -> nx.Graph:
+    keypad = nx.Graph()
+    kpl = [list("789"), list("456"), list("123"), [None, "0", "A"]]
+
+    for i in range(len(kpl)):
+        for j in range(len(kpl[i])):
+            curr = kpl[i][j]
+
+            if curr is None:
+                continue
+
+            keypad.add_node(curr)
+
+    for i in range(len(kpl)):
+        for j in range(len(kpl[i])):
+            curr = kpl[i][j]
+
+            if curr is None:
+                continue
+
+            for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                new_y, new_x = i + dy, j + dx
+                if (
+                    new_y >= 0
+                    and new_y < len(kpl)
+                    and new_x >= 0
+                    and new_x < len(kpl[i])
+                ):
+                    neighbour = kpl[new_y][new_x]
+                    if neighbour is None:
+                        continue
+
+                    keypad.add_edge(curr, neighbour)
+
+    return keypad
+
+
+@cache
+def get_directions(curr: str, target: str) -> Tuple[str, ...]:
+    """
+    Return the most optimal way of moving between one cell and another.
+    """
+
+    # Screw it let's hard code this.
+    if curr == target:
+        return tuple("A")
+
+    if curr == "A":
+        if target == "^":
+            path = "<A"
+        elif target == "<":
+            # no change
+            path = "v<<A"
+        elif target == "v":
+            path = "<vA"
+        elif target == ">":
+            path = "vA"
+    elif curr == "^":
+        if target == "A":
+            path = ">A"
+        elif target == "<":
+            # no change
+            path = "v<A"
+        elif target == "v":
+            path = "vA"
+        elif target == ">":
+            path = "v>A"
+    elif curr == "<":
+        if target == "A":
+            # no change
+            path = ">>^A"
+        elif target == "^":
+            # no change
+            path = ">^A"
+        elif target == "v":
+            path = ">A"
+        elif target == ">":
+            # no change
+            path = ">>A"
+    elif curr == "v":
+        if target == "A":
+            path = "^>A"
+        elif target == "^":
+            path = "^A"
+        elif target == "<":
+            path = "<A"
+        elif target == ">":
+            path = ">A"
+    elif curr == ">":
+        if target == "A":
+            path = "^A"
+        elif target == "^":
+            path = "<^A"
+        elif target == "<":
+            # no change
+            path = "<<A"
+        elif target == "v":
+            path = "<A"
+
+    return tuple(path)
+
+
+@cache
+def solve_segment(
+    segment: Tuple[str, ...],
+) -> List[Tuple[str, ...]]:
+    segment_moves = []
+    curr = "A"
+    for target in segment:
+        path = get_directions(curr, target)
+        curr = target
+        segment_moves.append(path)
+    return segment_moves
+
+
+def solve_numeric(line: List[str], numeric: nx.Graph) -> List[List[str]]:
+    curr = "A"
+    ret = []
+
+    for target in line:
+        paths_from = list(nx.all_shortest_paths(numeric, curr, target))
+        curr = target
+
+        first_robot = []
+        for path_from in paths_from:
+
+            path = []
+            for i in range(len(path_from) - 1):
+                start = path_from[i]
+                end = path_from[i + 1]
+
+                if start == "A":
+                    if end == "3":
+                        path.append("^")
+                    else:
+                        path.append("<")
+                elif end == "A":
+                    if start == "3":
+                        path.append("v")
+                    else:
+                        path.append(">")
+                else:
+                    start = int(start)
+                    end = int(end)
+                    if abs(start - end) == 1:
+                        if start > end:
+                            path.append("<")
+                        else:
+                            path.append(">")
+                    else:
+                        if start > end:
+                            path.append("v")
+                        else:
+                            path.append("^")
+            path.append("A")
+            first_robot.append(tuple(path))
+        ret.append(first_robot)
+
+    out = list(list(tuple(vs) for vs in v) for v in itertools.product(*ret))
+    return out
+
+
+def update(counter: Counter) -> Counter:
+    new_counter = Counter()
+
+    for segment, amount in counter.items():
+        new_segments = solve_segment(segment)
+        for result in new_segments:
+            new_counter[result] += amount
+
+    return new_counter
 
 
 def part_one():
     lines = read_lines_to_list()
     answer = 0
+
+    numeric = create_numeric()
+
+    for line in lines:
+        code = "".join(line)
+        numeric_value = int(code[:-1])
+
+        best_length = 999999999999999999
+
+        for first_robot in solve_numeric(line, numeric):
+            counter = Counter(first_robot)
+
+            counter = update(counter)  # second robot
+            counter = update(counter)  # you
+
+            length = sum(len(segment) * number for (segment, number) in counter.items())
+
+            if length < best_length:
+                best_length = length
+
+        # print(code, numeric_value, best_length, best_length * numeric_value)
+        answer += best_length * numeric_value
 
     print(f"Part 1: {answer}")
 
@@ -86,6 +226,26 @@ def part_one():
 def part_two():
     lines = read_lines_to_list()
     answer = 0
+
+    numeric = create_numeric()
+
+    for line in lines:
+        code = "".join(line)
+        numeric_value = int(code[:-1])
+
+        best_length = 999999999999999999
+        for first_robot in solve_numeric(line, numeric):
+
+            counter = Counter(first_robot)
+            for _i in range(25):
+                counter = update(counter)
+
+            length = sum(len(segment) * number for (segment, number) in counter.items())
+
+            if length < best_length:
+                best_length = length
+
+        answer += best_length * numeric_value
 
     print(f"Part 2: {answer}")
 
