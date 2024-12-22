@@ -1,8 +1,8 @@
 #!/bin/python3
 
+from collections import defaultdict
 import sys
 from typing import List
-
 
 FILE = sys.argv[1] if len(sys.argv) > 1 else "input.txt"
 
@@ -59,7 +59,7 @@ def part_two():
     lines = read_lines_to_list()
     answer = 0
 
-    all_sequences = []
+    all_sequences = defaultdict(int)
     to_test = set()
 
     for line in lines:
@@ -76,25 +76,22 @@ def part_two():
             b = prices[i + 1]
             deltas.append(b - a)
 
-        sequences = dict()
+        seen = set()
         for i in range(4, len(prices) - 1):
             # Try and take the sequences lining up with this.
             # For index 6, for example, take 2, 3, 4, 5 from delta
 
             changes = tuple(deltas[i - 4 : i])
-            if changes not in sequences:
-                sequences[changes] = prices[i]
+            if changes not in seen:
+                seen.add(changes)
+                all_sequences[changes] += prices[i]
 
-        to_test.update(sequences.keys())
-        all_sequences.append(sequences)
+        to_test.update(seen)
 
     best_score = 0
 
     for candidate in to_test:
-        total = 0
-        for sequence in all_sequences:
-            if candidate in sequence:
-                total += sequence[candidate]
+        total = all_sequences[candidate]
 
         if total > best_score:
             best_score = total

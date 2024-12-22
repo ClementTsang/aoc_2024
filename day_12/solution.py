@@ -3,7 +3,6 @@
 import sys
 from typing import List, Tuple
 
-
 FILE = sys.argv[1] if len(sys.argv) > 1 else "input.txt"
 
 

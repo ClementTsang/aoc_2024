@@ -3,7 +3,6 @@
 import sys
 from typing import List
 
-
 FILE = sys.argv[1] if len(sys.argv) > 1 else "input.txt"
 HEIGHT = 7 if "input.txt" not in FILE else 103
 WIDTH = 11 if "input.txt" not in FILE else 101

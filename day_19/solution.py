@@ -1,8 +1,8 @@
 #!/bin/python3
 
 import sys
-from typing import List
 from functools import cache
+from typing import List
 
 sys.setrecursionlimit(100000)
 FILE = sys.argv[1] if len(sys.argv) > 1 else "input.txt"
