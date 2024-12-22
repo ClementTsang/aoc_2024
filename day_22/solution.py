@@ -2,7 +2,7 @@
 
 import sys
 from typing import List
-import itertools
+
 
 FILE = sys.argv[1] if len(sys.argv) > 1 else "input.txt"
 
@@ -60,6 +60,7 @@ def part_two():
     answer = 0
 
     all_sequences = []
+    to_test = set()
 
     for line in lines:
         prices = []
@@ -84,12 +85,8 @@ def part_two():
             if changes not in sequences:
                 sequences[changes] = prices[i]
 
+        to_test.update(sequences.keys())
         all_sequences.append(sequences)
-
-    to_test = list(
-        set(itertools.chain.from_iterable(seq.keys() for seq in all_sequences))
-    )
-    to_test.sort(reverse=True)
 
     best_score = 0
 
