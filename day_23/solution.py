@@ -32,13 +32,10 @@ def part_one():
         connections.add_edge(b, a)
 
     results = set()
-    for cycle in nx.simple_cycles(connections, 3):
-        if len(cycle) != 3:
-            continue
-
-        if any(c.startswith("t") for c in cycle):
-            cycle = sorted(cycle)
-            results.add(tuple(cycle))
+    for clique in filter(lambda c: len(c) == 3, nx.enumerate_all_cliques(connections)):
+        if any(c.startswith("t") for c in clique):
+            clique = sorted(clique)
+            results.add(tuple(clique))
 
     answer = len(results)
     print(f"Part 1: {answer}")
